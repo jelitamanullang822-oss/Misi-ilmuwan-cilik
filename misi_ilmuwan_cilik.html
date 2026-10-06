@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MISI ILMUWAN CILIK - Petualangan IPA Interaktif</title>
+  
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Google Fonts: Fredoka & Quicksand -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Fredoka', 'Quicksand', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow-x: hidden;
+      background: linear-gradient(180deg, #38BDF8 0%, #3B82F6 50%, #1D4ED8 100%);
+      min-height: 100vh;
+    }
+
+    @keyframes floatCloud {
+      0% { transform: translateX(-15%); }
+      100% { transform: translateX(115vw); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255,255,255,0.8)); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 0 18px rgba(253,224,71,0.9)); }
+    }
+
+    @keyframes lumiBobble {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(3deg); }
+    }
+
+    @keyframes butterflyFly {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(25px, -15px) rotate(8deg); }
+      50% { transform: translate(50px, 0px) rotate(-4deg); }
+      75% { transform: translate(25px, 15px) rotate(6deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+
+    .cloud-1 { animation: floatCloud 38s linear infinite; }
+    .cloud-2 { animation: floatCloud 52s linear infinite; animation-delay: -20s; }
+    .cloud-3 { animation: floatCloud 44s linear infinite; animation-delay: -9s; }
+    .star-glow { animation: pulseGlow 2.5s ease-in-out infinite; }
+    .lumi-bobble { animation: lumiBobble 3.2s ease-in-out infinite; }
+    .butterfly-anim { animation: butterflyFly 7.5s ease-in-out infinite; }
+
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.93);
+      backdrop-filter: blur(12px);
+      border: 4px solid rgba(255, 255, 255, 0.95);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+      border-radius: 2rem;
+    }
+
+    .game-btn {
+      transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.2), 0 12px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .game-btn:hover {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 12px 0 rgba(0, 0, 0, 0.2), 0 16px 25px rgba(0, 0, 0, 0.22);
+    }
+
+    .game-btn:active {
+      transform: translateY(4px) scale(0.97);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .locked-node {
+      filter: grayscale(85%) opacity(0.65);
+      cursor: not-allowed !allowed;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: #e0f2fe; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 10px; }
+  </style>
+</head>
+
+<body class="relative min-h-screen text-slate-800 flex flex-col justify-between selection:bg-amber-300">
+
+  <!-- BACKGROUND FLOATING DECORATIONS -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div class="cloud-1 absolute top-6 left-0 opacity-80 text-white text-7xl">☁️</div>
+    <div class="cloud-2 absolute top-24 left-0 opacity-70 text-white text-8xl">☁️</div>
+    <div class="cloud-3 absolute top-14 left-0 opacity-90 text-white text-6xl">☁️</div>
+
+    <div class="butterfly-anim absolute top-1/4 left-10 text-3xl">🦋</div>
+    <div class="butterfly-anim absolute top-2/3 right-12 text-4xl" style="animation-delay: -3s;">🐝</div>
+    <div class="star-glow absolute top-10 left-1/3 text-amber-300 text-3xl">✨</div>
+    <div class="star-glow absolute top-36 right-1/4 text-amber-300 text-4xl" style="animation-delay: -1.2s;">⭐</div>
+    <div class="star-glow absolute bottom-16 left-12 text-amber-300 text-3xl" style="animation-delay: -1.8s;">🌟</div>
+  </div>
+
+  <!-- HUD NAVIGATION HEADER -->
+  <header id="game-hud" class="relative z-30 p-3 md:p-4 bg-white/85 backdrop-blur-md border-b-4 border-sky-400 shadow-md transition-all duration-300 hidden">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <button onclick="goHome()" class="flex items-center gap-2 group">
+        <span class="text-3xl group-hover:scale-125 transition-transform">🔬</span>
+        <span class="font-extrabold text-lg md:text-xl text-sky-700 tracking-wide">MISI ILMUWAN CILIK</span>
+      </button>
+
+      <div class="flex items-center gap-2 md:gap-3 text-sm md:text-base font-extrabold">
+        <div class="flex items-center gap-1.5 bg-amber-100 border-2 border-amber-400 px-3 py-1.5 rounded-full text-amber-900 shadow-sm">
+          <span class="text-xl">⭐</span>
+          <span id="hud-stars">0</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-yellow-100 border-2 border-yellow-400 px-3 py-1.5 rounded-full text-yellow-900 shadow-sm">
+          <span class="text-xl">🪙</span>
+          <span id="hud-coins">0</span>
+        </div>
+
+        <button onclick="openBagModal()" class="game-btn bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-full flex items-center gap-1.5 border-2 border-emerald-700 text-xs md:text-sm">
+          <span>🎒</span> <span>Tas Ilmuwan</span>
+        </button>
+
+        <button onclick="openProgressModal()" class="game-btn bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-full flex items-center gap-1.5 border-2 border-indigo-700 text-xs md:text-sm">
+          <span>🗺️</span> <span>Misi</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APPLICATION VIEWPORT -->
+  <main class="relative z-10 flex-grow flex items-center justify-center p-3 sm:p-6 max-w-6xl w-full mx-auto">
+
+    <!-- VIEW 0: HOME PAGE (HERO) -->
+    <section id="view-home" class="w-full text-center my-auto">
+      <div class="glass-panel p-6 sm:p-10 max-w-3xl mx-auto relative overflow-hidden">
+        <div class="inline-block bg-amber-300 text-amber-950 font-black px-4 py-1.5 rounded-full text-xs sm:text-sm tracking-wider uppercase mb-4 border-2 border-amber-400">
+          🚀 Petualangan Belajar IPA Kelas 4 SD
+        </div>
+
+        <h1 class="text-3xl sm:text-5xl md:text-6xl font-black text-sky-700 drop-shadow-md leading-tight mb-3">
+          🔬 MISI ILMUWAN CILIK
+        </h1>
+        <p class="text-lg sm:text-2xl text-indigo-900 font-bold mb-6">
+          “Siap menemukan rahasia dunia IPA di sekitarmu?”
+        </p>
+
+        <!-- Main Character Mascot -->
+        <div class="relative w-48 h-48 sm:w-60 sm:h-60 mx-auto mb-6 flex items-center justify-center bg-gradient-to-tr from-sky-200 via-emerald-200 to-indigo-200 rounded-full border-4 border-white shadow-inner">
+          <span class="text-7xl sm:text-8xl lumi-bobble">🔬</span>
+          <span class="text-6xl sm:text-7xl -ml-6 animate-pulse">🧪</span>
+          <span class="absolute -top-2 -right-2 text-4xl sm:text-5xl">🎒</span>
+        </div>
+
+        <button onclick="soundManager.play('button'); startAdventure();" class="game-btn w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-amber-950 font-black text-2xl sm:text-3xl px-10 py-5 rounded-3xl border-4 border-amber-500 flex items-center justify-center gap-3 mx-auto">
+          <span>🚀</span> MULAI MISI!
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW MAP: ADVENTURE MAP -->
+    <section id="view-map" class="w-full hidden">
+      <div class="glass-panel p-5 sm:p-8">
+        <div class="text-center mb-6">
+          <h2 class="text-2xl sm:text-4xl font-black text-indigo-900 flex items-center justify-center gap-2">
+            🗺️ PETA PETUALANGAN IPA
+          </h2>
+          <p class="text-slate-600 font-bold text-sm sm:text-base">Pilih laboratorium atau lokasi eksplorasimu!</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          
+          <!-- Node 1 -->
+          <div id="map-node-1" onclick="openMission(1)" class="game-btn cursor-pointer bg-gradient-to-br from-emerald-100 to-emerald-300 border-4 border-emerald-500 rounded-2xl p-5 text-center relative overflow-hidden">
+            <div class="text-5xl mb-2">🌱</div>
+            <h3 class="font-black text-xl text-emerald-950">Taman Kehidupan</h3>
+            <p class="text-xs font-extrabold text-emerald-800 mb-3">Misi 1: Selamatkan Tanaman!</p>
+            <div id="badge-status-1" class="inline-block bg-emerald-600 text-white text-xs font-extrabold px-3 py-1 rounded-full">TERBUKA</div>
+          </div>
+
+          <!-- Node 2 -->
+          <div id="map-node-2" onclick="openMission(2)" class="game-btn cursor-pointer bg-gradient-to-br from-amber-100 to-amber-300 border-4 border-amber-500 rounded-2xl p-5 text-center relative overflow-hidden locked-node">
+            <div class="text-5xl mb-2">🐾</div>
+            <h3 class="font-black text-xl text-amber-950">Hutan Hewan</h3>
+            <p class="text-xs font-extrabold text-amber-800 mb-3">Misi 2: Cari Rumah Hewan</p>
+            <div id="badge-status-2" class="inline-block bg-slate-500 text-white text-xs font-extrabold px-3 py-1 rounded-full">🔒 TERKUNCI</div>
+          </div>
+
+          <!-- Node 3 -->
+          <div id="map-node-3" onclick="openMission(3)" class="game-btn cursor-pointer bg-gradient-to-br from-sky-100 to-sky-300 border-4 border-sky-500 rounded-2xl p-5 text-center relative overflow-hidden locked-node">
+            <div class="text-5xl mb-2">💧</div>
+            <h3 class="font-black text-xl text-sky-950">Laboratorium Air</h3>
+            <p class="text-xs font-extrabold text-sky-800 mb-3">Misi 3: Ke Mana Air Pergi?</p>
+            <div id="badge-status-3" class="inline-block bg-slate-500 text-white text-xs font-extrabold px-3 py-1 rounded-full">🔒 TERKUNCI</div>
+          </div>
+
+          <!-- Node 4 -->
+          <div id="map-node-4" onclick="openMission(4)" class="game-btn cursor-pointer bg-gradient-to-br from-yellow-100 to-amber-300 border-4 border-yellow-500 rounded-2xl p-5 text-center relative overflow-hidden locked-node">
+            <div class="text-5xl mb-2">💡</div>
+            <h3 class="font-black text-xl text-yellow-950">Kota Energi</h3>
+            <p class="text-xs font-extrabold text-yellow-800 mb-3">Misi 4: Nyalakan Kota!</p>
+            <div id="badge-status-4" class="inline-block bg-slate-500 text-white text-xs font-extrabold px-3 py-1 rounded-full">🔒 TERKUNCI</div>
+          </div>
+
+          <!-- Node 5 -->
+          <div id="map-node-5" onclick="openMission(5)" class="game-btn cursor-pointer bg-gradient-to-br from-teal-100 to-teal-300 border-4 border-teal-500 rounded-2xl p-5 text-center relative overflow-hidden locked-node">
+            <div class="text-5xl mb-2">🌍</div>
+            <h3 class="font-black text-xl text-teal-950">Planet Bumi</h3>
+            <p class="text-xs font-extrabold text-teal-800 mb-3">Misi 5: Selamatkan Lingkungan</p>
+            <div id="badge-status-5" class="inline-block bg-slate-500 text-white text-xs font-extrabold px-3 py-1 rounded-full">🔒 TERKUNCI</div>
+          </div>
+
+          <!-- Node 6 -->
+          <div id="map-node-6" onclick="openMission(6)" class="game-btn cursor-pointer bg-gradient-to-br from-purple-100 to-purple-300 border-4 border-purple-500 rounded-2xl p-5 text-center relative overflow-hidden locked-node">
+            <div class="text-5xl mb-2">🧪</div>
+            <h3 class="font-black text-xl text-purple-950">Lab Eksperimen</h3>
+            <p class="text-xs font-extrabold text-purple-800 mb-3">Misi 6: Simulasi Virtual Mandiri</p>
+            <div id="badge-status-6" class="inline-block bg-slate-500 text-white text-xs font-extrabold px-3 py-1 rounded-full">🔒 TERKUNCI</div>
+          </div>
+
+          <!-- Node 7 -->
+          <div id="map-node-7" onclick="openMission(7)" class="game-btn cursor-pointer bg-gradient-to-br from-pink-100 to-pink-300 border-4 border-pink-500 rounded-2xl p-5 text-center relative overflow-hidden locked-node sm:col-span-2 lg:col-span-3">
+            <div class="text-5xl mb-2">🔎</div>
+            <h3 class="font-black text-xl text-pink-950">Detektif IPA & Puzzle Perubahan Wujud</h3>
+            <p class="text-xs font-extrabold text-pink-800 mb-3">Misi 7: Temukan Benda Perubahan Wujud & Susun Rantai</p>
+            <div id="badge-status-7" class="inline-block bg-slate-500 text-white text-xs font-extrabold px-3 py-1 rounded-full">🔒 TERKUNCI</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- MINI GAME 1: TAMAN KEHIDUPAN -->
+    <section id="view-mission-1" class="w-full hidden">
+      <div class="glass-panel p-5 sm:p-8">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="goMap()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-3 py-1.5 rounded-full text-xs sm:text-sm">⬅️ Kembali ke Peta</button>
+          <span class="bg-emerald-200 text-emerald-950 font-black px-3 py-1 rounded-full text-xs">Misi 1 / 7</span>
+        </div>
+
+        <div class="text-center mb-4">
+          <h2 class="text-2xl sm:text-3xl font-black text-emerald-800">🌱 TAMAN KEHIDUPAN: SELAMATKAN TANAMAN</h2>
+          <p class="text-slate-600 font-bold text-sm sm:text-base">Pilih <span class="text-emerald-600 font-black">4 kebutuhan utama</span> agar tanaman tumbuh segar!</p>
+        </div>
+
+        <!-- Plant Growth Display -->
+        <div class="bg-gradient-to-b from-sky-100 to-emerald-100 border-4 border-emerald-400 rounded-3xl p-6 h-64 flex flex-col items-center justify-end relative overflow-hidden shadow-inner mb-6">
+          <div class="absolute top-2 right-4 text-3xl" id="plant-sun-icon" style="opacity: 0.2;">☀️</div>
+          <div class="absolute top-2 left-4 text-3xl" id="plant-air-icon" style="opacity: 0.2;">🌬️</div>
+          
+          <div id="plant-visual" class="text-8xl transition-all duration-500 transform scale-75">🌱</div>
+          <p id="plant-stage-label" class="mt-2 font-black text-emerald-900 bg-white/80 px-4 py-1 rounded-full text-xs sm:text-sm border border-emerald-300">Tunas Kecil Membutuhkan Nutrisi!</p>
+        </div>
+
+        <!-- Nutrient Items Grid -->
+        <div id="misi1-items" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-xl mx-auto"></div>
+      </div>
+    </section>
+
+    <!-- MINI GAME 2: HUTAN HEWAN (HABITAT MATCH) -->
+    <section id="view-mission-2" class="w-full hidden">
+      <div class="glass-panel p-5 sm:p-8">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="goMap()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-3 py-1.5 rounded-full text-xs sm:text-sm">⬅️ Kembali ke Peta</button>
+          <span class="bg-amber-200 text-amber-950 font-black px-3 py-1 rounded-full text-xs">Misi 2 / 7</span>
+        </div>
+
+        <div class="text-center mb-6">
+          <h2 class="text-2xl sm:text-3xl font-black text-amber-800">🐾 HUTAN HEWAN: CARI RUMAH HEWAN</h2>
+          <p class="text-slate-600 font-bold text-sm sm:text-base">Klik hewan di kiri, lalu cocokkan dengan tempat tinggalnya di kanan!</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          <div id="misi2-animals" class="flex flex-col gap-3"></div>
+          <div id="misi2-habitats" class="flex flex-col gap-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MINI GAME 3: LABORATORIUM AIR (SUHU & PERUBAHAN WUJUD) -->
+    <section id="view-mission-3" class="w-full hidden">
+      <div class="glass-panel p-5 sm:p-8">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="goMap()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-3 py-1.5 rounded-full text-xs sm:text-sm">⬅️ Kembali ke Peta</button>
+          <span class="bg-sky-200 text-sky-950 font-black px-3 py-1 rounded-full text-xs">Misi 3 / 7</span>
+        </div>
+
+        <div class="text-center mb-4">
+          <h2 class="text-2xl sm:text-3xl font-black text-sky-800">💧 LABORATORIUM AIR: KE MANA AIR PERGI?</h2>
+          <p class="text-slate-600 font-bold text-sm sm:text-base">Ubah suhu wadah air untuk melihat perubahan wujudnya!</p>
+        </div>
+
+        <div class="bg-gradient-to-b from-sky-50 to-indigo-100 border-4 border-sky-400 rounded-3xl p-6 h-64 flex flex-col items-center justify-center relative overflow-hidden shadow-inner mb-6">
+          <div id="water-visual" class="text-8xl transition-all duration-300 transform">🧊</div>
+          <div id="water-state-label" class="mt-4 font-black text-indigo-950 bg-white/90 px-5 py-1.5 rounded-full text-sm border-2 border-indigo-300">
+            Wujud: ES PADAT (0°C) - MEMBEKU
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center justify-center gap-4 max-w-md mx-auto">
+          <button onclick="changeWaterTemp(-10)" class="game-btn bg-sky-500 hover:bg-sky-600 text-white font-black px-6 py-3 rounded-2xl border-2 border-sky-700 flex items-center gap-2">
+            <span>❄️</span> DINGINKAN (-10°C)
+          </button>
+          <button onclick="changeWaterTemp(10)" class="game-btn bg-amber-500 hover:bg-amber-600 text-white font-black px-6 py-3 rounded-2xl border-2 border-amber-700 flex items-center gap-2">
+            <span>🔥</span> PANASKAN (+10°C)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MINI GAME 4: KOTA ENERGI -->
+    <section id="view-mission-4" class="w-full hidden">
+      <div class="glass-panel p-5 sm:p-8">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="goMap()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-3 py-1.5 rounded-full text-xs sm:text-sm">⬅️ Kembali ke Peta</button>
+          <span class="bg-yellow-200 text-yellow-950 font-black px-3 py-1 rounded-full text-xs">Misi 4 / 7</span>
+        </div>
+
+        <div class="text-center mb-4">
+          <h2 class="text-2xl sm:text-3xl font-black text-yellow-800">💡 KOTA ENERGI: NYALAKAN KOTA!</h2>
+          <p class="text-slate-600 font-bold text-sm sm:text-base">Hubungkan sumber energi tepat untuk menyalakan fasilitas kota!</p>
+        </div>
+
+        <div id="city-buildings-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto"></div>
+      </div>
+    </section>
+
+    <!-- MINI GAME 5: PLANET BUMI (BERSIHKAN LINGKUNGAN) -->
+    <section id="view-mission-5" class="w-full hidden">
+      <div class="glass-panel p-5 sm:p-8">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="goMap()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-3 py-1.5 rounded-full text-xs sm:text-sm">⬅️ Kembali ke Peta</button>
+          <span class="bg-teal-200 text-teal-950 font-black px-3 py-1 rounded-full text-xs">Misi 5 / 7</span>
+        </div>
+
+        <div class="text-center mb-4">
+          <h2 class="text-2xl sm:text-3xl font-black text-teal-800">🌍 PLANET BUMI: SELAMATKAN LINGKUNGAN</h2>
+          <p class="text-slate-600 font-bold text-sm sm:text-base">Bersihkan sampah & tanam pohon untuk menyelamatkan taman ini!</p>
+        </div>
+
+        <div id="eco-park" class="bg-gradient-to-b from-amber-100 to-emerald-200 border-4 border-teal-500 rounded-3xl p-6 h-64 relative overflow-hidden shadow-inner mb-4 flex items-center justify-center">
+          <div id="eco-trash-container" class="w-full h-full relative"></div>
+        </div>
+
+        <p class="text-center font-black text-slate-700 text-xs sm:text-sm">Klik semua item sampah di atas untuk mendaur ulangnya!</p>
+      </div>
+    </section>
+
+    <!-- MINI GAME 6: VIRTUAL LAB EXPERIMENT -->
+    <section id="view-mission-6" class="w-full hidden">
+      <div class="glass-panel p-5 sm:p-8">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="goMap()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-3 py-1.5 rounded-full text-xs sm:text-sm">⬅️ Kembali ke Peta</button>
+          <span class="bg-purple-200 text-purple-950 font-black px-3 py-1 rounded-full text-xs">Misi 6 / 7</span>
+        </div>
+
+        <div class="text-center mb-4">
+          <h2 class="text-2xl sm:text-3xl font-black text-purple-800">🧪 LAB EKSPERIMEN VIRTUAL</h2>
+          <p class="text-slate-600 font-bold text-sm sm:text-base">Pilih simulasi eksperimen sederhana yang ingin kamu amati!</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+          <button onclick="runLabSim(1)" class="game-btn bg-purple-100 hover:bg-purple-200 border-2 border-purple-400 p-3 rounded-2xl text-left">
+            <span class="text-3xl">🧊</span>
+            <p class="font-black text-xs text-purple-950 mt-1">1. Es di Terik Matahari vs Tempat Teduh</p>
+          </button>
+          <button onclick="runLabSim(2)" class="game-btn bg-purple-100 hover:bg-purple-200 border-2 border-purple-400 p-3 rounded-2xl text-left">
+            <span class="text-3xl">📦</span>
+            <p class="font-black text-xs text-purple-950 mt-1">2. Tanaman di Dalam Kotak Gelap</p>
+          </button>
+          <button onclick="runLabSim(3)" class="game-btn bg-purple-100 hover:bg-purple-200 border-2 border-purple-400 p-3 rounded-2xl text-left">
+            <span class="text-3xl">🌈</span>
+            <p class="font-black text-xs text-purple-950 mt-1">3. Pembiasan Pelangi Air & Senter</p>
+          </button>
+        </div>
+
+        <!-- Simulation Display Arena -->
+        <div id="sim-display" class="bg-slate-900 text-white rounded-3xl p-6 min-h-[200px] flex flex-col items-center justify-center text-center border-4 border-purple-500 shadow-xl">
+          <p class="text-slate-400 font-bold text-sm">Pilih salah satu eksperimen simulasi di atas untuk memulai!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MINI GAME 7: DETEKTIF IPA & PUZZLE -->
+    <section id="view-mission-7" class="w-full hidden">
+      <div class="glass-panel p-5 sm:p-8">
+        <div class="flex items-center justify-between mb-4">
+          <button onclick="goMap()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-3 py-1.5 rounded-full text-xs sm:text-sm">⬅️ Kembali ke Peta</button>
+          <span class="bg-pink-200 text-pink-950 font-black px-3 py-1 rounded-full text-xs">Misi 7 / 7</span>
+        </div>
+
+        <div class="text-center mb-4">
+          <h2 class="text-2xl sm:text-3xl font-black text-pink-800">🔎 DETEKTIF IPA & PUZZLE SIKLUS</h2>
+          <p class="text-slate-600 font-bold text-sm sm:text-base">Temukan 3 benda yang dapat berubah wujud di ruangan ini!</p>
+        </div>
+
+        <div class="bg-gradient-to-tr from-indigo-100 to-pink-100 border-4 border-pink-400 rounded-3xl p-6 h-64 relative overflow-hidden shadow-inner mb-6 flex items-center justify-center">
+          <div id="detective-room" class="w-full h-full relative"></div>
+        </div>
+
+        <!-- Cycle Puzzle Challenge -->
+        <div id="cycle-puzzle-box" class="bg-pink-50 p-4 rounded-2xl border-2 border-pink-300 hidden">
+          <h3 class="font-black text-pink-950 text-center text-sm mb-3">🧩 Susun Urutan Siklus Tumbuhan:</h3>
+          <div id="puzzle-slots" class="flex justify-center gap-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVALUATION & CERTIFICATE VICTORY VIEW -->
+    <section id="view-reflection" class="w-full hidden">
+      <div class="glass-panel p-6 sm:p-10 text-center max-w-2xl mx-auto">
+        <div class="text-6xl mb-2 animate-bounce">🏆</div>
+        <h2 class="text-3xl sm:text-4xl font-black text-amber-600 mb-2">🎉 SELAMAT, ILMUWAN CILIK!</h2>
+        <p class="text-slate-700 font-extrabold text-base sm:text-lg mb-6">"Kamu berhasil menyelesaikan semua misi eksperimen IPA!"</p>
+
+        <!-- Emotion Reflection Cards -->
+        <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 mb-6">
+          <p class="font-black text-amber-950 text-sm sm:text-base mb-3">🌟 Bagaimana perasaanmu setelah bereksperimen hari ini?</p>
+          <div class="grid grid-cols-3 gap-2 sm:gap-3">
+            <button onclick="selectReflection('paham')" class="p-3 bg-white hover:bg-amber-100 rounded-xl border-2 border-amber-200 font-extrabold text-xs flex flex-col items-center">
+              <span class="text-3xl mb-1">😊</span> Aku sudah paham!
+            </button>
+            <button onclick="selectReflection('lagi')" class="p-3 bg-white hover:bg-amber-100 rounded-xl border-2 border-amber-200 font-extrabold text-xs flex flex-col items-center">
+              <span class="text-3xl mb-1">🤔</span> Mau coba lagi!
+            </button>
+            <button onclick="selectReflection('baru')" class="p-3 bg-white hover:bg-amber-100 rounded-xl border-2 border-amber-200 font-extrabold text-xs flex flex-col items-center">
+              <span class="text-3xl mb-1">💡</span> Nemu ide baru!
+            </button>
+          </div>
+        </div>
+
+        <!-- Master Scientist Certificate Render -->
+        <div class="bg-white p-3 rounded-2xl border-4 border-amber-400 shadow-md mb-6">
+          <canvas id="certCanvas" width="360" height="240" class="w-full h-auto rounded-xl border border-slate-200"></canvas>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-3">
+          <button onclick="resetAllProgress()" class="game-btn bg-emerald-500 hover:bg-emerald-600 text-white font-black px-6 py-3 rounded-2xl border-2 border-emerald-700">
+            🔄 Main Lagi
+          </button>
+          <button onclick="downloadCertificate()" class="game-btn bg-sky-500 hover:bg-sky-600 text-white font-black px-6 py-3 rounded-2xl border-2 border-sky-700">
+            📜 Simpan Sertifikat
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- LUMI THE MASCOT TUTOR -->
+  <div id="lumi-mascot" class="fixed bottom-4 right-4 z-40 flex items-end gap-3 pointer-events-none transition-all duration-300">
+    <div id="lumi-bubble" class="bg-white border-4 border-sky-400 p-3 sm:p-4 rounded-3xl rounded-br-none shadow-2xl max-w-xs text-xs sm:text-sm font-black text-sky-950 pointer-events-auto transform transition-transform">
+      Halo! Aku Lumi si Ilmuwan Cilik! 🔬 Siap bereksperimen bersama?
+    </div>
+    <div onclick="lumiSpeakRandom()" class="lumi-bobble pointer-events-auto cursor-pointer bg-gradient-to-tr from-sky-400 to-indigo-500 p-3 rounded-full border-4 border-white shadow-xl text-4xl hover:scale-110 transition-transform">
+      🔬
+    </div>
+  </div>
+
+  <!-- INVENTORY BAG MODAL -->
+  <div id="bag-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-panel w-full max-w-md p-6 relative max-h-[85vh] overflow-y-auto">
+      <button onclick="closeBagModal()" class="absolute top-4 right-4 text-xl font-black bg-slate-200 hover:bg-slate-300 rounded-full w-8 h-8 flex items-center justify-center">✕</button>
+      <h3 class="text-2xl font-black text-emerald-800 text-center mb-4">🎒 TAS ILMUWANKU</h3>
+      <div id="bag-items-grid" class="grid grid-cols-2 gap-3"></div>
+    </div>
+  </div>
+
+  <!-- PROGRESS MODAL -->
+  <div id="progress-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-panel w-full max-w-md p-6 relative max-h-[85vh] overflow-y-auto">
+      <button onclick="closeProgressModal()" class="absolute top-4 right-4 text-xl font-black bg-slate-200 hover:bg-slate-300 rounded-full w-8 h-8 flex items-center justify-center">✕</button>
+      <h3 class="text-2xl font-black text-indigo-800 text-center mb-4">🚀 PERJALANAN ILMUWANKU</h3>
+      
+      <div class="mb-4">
+        <div class="flex justify-between font-black text-xs text-slate-700 mb-1">
+          <span>Progres Misi IPA</span>
+          <span id="modal-mission-count">0 / 7 Misi</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-4 border-2 border-slate-300 overflow-hidden">
+          <div id="modal-progress-bar" class="bg-sky-500 h-full w-0 transition-all duration-500"></div>
+        </div>
+      </div>
+
+      <h4 class="font-black text-sm text-slate-800 mb-2">🏅 Lencana Lulus Misi:</h4>
+      <div id="modal-badges-grid" class="grid grid-cols-2 gap-2"></div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APP LOGIC ENGINE -->
+  <script>
+    class WebAudioEngine {
+      constructor() {
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      }
+
+      play(type) {
+        try {
+          this.init();
+          if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          const now = this.ctx.currentTime;
+
+          if (type === 'button') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(350, now);
+            osc.frequency.exponentialRampToValueAtTime(700, now + 0.1);
+            gain.gain.setValueAtTime(0.18, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.1);
+            osc.start(now);
+            osc.stop(now + 0.1);
+          } else if (type === 'correct') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.1);
+            osc.frequency.setValueAtTime(783.99, now + 0.2);
+            gain.gain.setValueAtTime(0.25, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.35);
+            osc.start(now);
+            osc.stop(now + 0.35);
+          } else if (type === 'wrong') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(240, now);
+            osc.frequency.setValueAtTime(180, now + 0.15);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now);
+            osc.stop(now + 0.3);
+          } else if (type === 'fanfare') {
+            const freqs = [523.25, 659.25, 783.99, 1046.50];
+            freqs.forEach((f, idx) => {
+              const o = this.ctx.createOscillator();
+              const g = this.ctx.createGain();
+              o.connect(g);
+              g.connect(this.ctx.destination);
+              o.type = 'sine';
+              o.frequency.setValueAtTime(f, now + idx * 0.12);
+              g.gain.setValueAtTime(0.2, now + idx * 0.12);
+              g.gain.linearRampToValueAtTime(0, now + idx * 0.12 + 0.3);
+              o.start(now + idx * 0.12);
+              o.stop(now + idx * 0.12 + 0.3);
+            });
+          }
+        } catch (e) {
+          console.log("Audio play error");
+        }
+      }
+    }
+
+    const soundManager = new WebAudioEngine();
+
+    const state = {
+      stars: 0,
+      coins: 0,
+      completedMissions: [false, false, false, false, false, false, false],
+      bagItems: [
+        { id: 1, name: "Kaca Pembesar", icon: "🔍", unlocked: true },
+        { id: 2, name: "Bibit Ajaib", icon: "🌱", unlocked: false },
+        { id: 3, name: "Jurnal Habitat", icon: "🐾", unlocked: false },
+        { id: 4, name: "Botol Embun", icon: "💧", unlocked: false },
+        { id: 5, name: "Kristal Energi", icon: "⚡", unlocked: false },
+        { id: 6, name: "Miniatur Bumi", icon: "🌍", unlocked: false },
+        { id: 7, name: "Tabung Reaksi", icon: "🧪", unlocked: false },
+        { id: 8, name: "Lencana Master", icon: "🏆", unlocked: false },
+      ],
+      badges: [
+        { id: 1, name: "Sahabat Tumbuhan", icon: "🌱", unlocked: false },
+        { id: 2, name: "Detektif Hewan", icon: "🐾", unlocked: false },
+        { id: 3, name: "Ahli Perubahan Wujud", icon: "💧", unlocked: false },
+        { id: 4, name: "Penjelajah Energi", icon: "⚡", unlocked: false },
+        { id: 5, name: "Pahlawan Bumi", icon: "🌍", unlocked: false },
+        { id: 6, name: "Peneliti Muda", icon: "🧪", unlocked: false },
+        { id: 7, name: "Master Ilmuwan Cilik", icon: "🏆", unlocked: false },
+      ]
+    };
+
+    function showView(viewId) {
+      const views = ['view-home', 'view-map', 'view-mission-1', 'view-mission-2', 'view-mission-3', 'view-mission-4', 'view-mission-5', 'view-mission-6', 'view-mission-7', 'view-reflection'];
+      views.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+
+      const current = document.getElementById(viewId);
+      if (current) current.classList.remove('hidden');
+
+      const hud = document.getElementById('game-hud');
+      if (viewId === 'view-home') {
+        hud.classList.add('hidden');
+      } else {
+        hud.classList.remove('hidden');
+      }
+
+      updateHUD();
+    }
+
+    function startAdventure() {
+      showView('view-map');
+      updateMapNodes();
+      lumiSpeak("Pilih Misi 1: 🌱 Taman Kehidupan untuk mulai bereksperimen!");
+    }
+
+    function goHome() { showView('view-home'); }
+    function goMap() {
+      showView('view-map');
+      updateMapNodes();
+      lumiSpeak("Pilih lokasi berikutnya yang sudah terbuka!");
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-stars').innerText = state.stars;
+      document.getElementById('hud-coins').innerText = state.coins;
+    }
+
+    function updateMapNodes() {
+      for (let i = 1; i <= 7; i++) {
+        const node = document.getElementById(`map-node-${i}`);
+        const badge = document.getElementById(`badge-status-${i}`);
+        const isUnlocked = i === 1 || state.completedMissions[i - 2];
+
+        if (isUnlocked) {
+          node.classList.remove('locked-node');
+          badge.className = "inline-block bg-emerald-600 text-white text-xs font-black px-3 py-1 rounded-full";
+          badge.innerText = state.completedMissions[i - 1] ? "SELESAI ✅" : "TERBUKA";
+        } else {
+          node.classList.add('locked-node');
+          badge.className = "inline-block bg-slate-500 text-white text-xs font-black px-3 py-1 rounded-full";
+          badge.innerText = "🔒 TERKUNCI";
+        }
+      }
+    }
+
+    function lumiSpeak(text) {
+      const bubble = document.getElementById('lumi-bubble');
+      bubble.innerText = text;
+      bubble.classList.add('scale-105');
+      setTimeout(() => bubble.classList.remove('scale-105'), 200);
+    }
+
+    function lumiSpeakRandom() {
+      const quotes = [
+        "Sains itu menyenangkan! Teruslah bereksperimen!",
+        "Klik benda-benda di layar untuk mengamati reaksi uniknya!",
+        "Satu kesalahan adalah langkah pertama menemukan jawaban!"
+      ];
+      lumiSpeak(quotes[Math.floor(Math.random() * quotes.length)]);
+    }
+
+    const misi1ItemsData = [
+      { id: 1, icon: "☀️", name: "Cahaya Matahari", correct: true },
+      { id: 2, icon: "💧", name: "Air Segar", correct: true },
+      { id: 3, icon: "🌱", name: "Tanah Subur", correct: true },
+      { id: 4, icon: "🌬️", name: "Udara Bersih", correct: true },
+      { id: 5, icon: "🍔", name: "Burger", correct: false },
+      { id: 6, icon: "👟", name: "Sepatu Olahraga", correct: false }
+    ];
+
+    let misi1Score = 0;
+
+    function initMission1() {
+      misi1Score = 0;
+      const grid = document.getElementById('misi1-items');
+      grid.innerHTML = '';
+      document.getElementById('plant-visual').innerText = '🌱';
+      document.getElementById('plant-stage-label').innerText = 'Tunas Kecil Membutuhkan Nutrisi!';
+
+      misi1ItemsData.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'game-btn bg-white hover:bg-emerald-50 border-4 border-emerald-300 rounded-2xl p-3 flex flex-col items-center justify-center text-center';
+        btn.innerHTML = `<span class="text-4xl mb-1">${item.icon}</span><span class="font-extrabold text-xs text-slate-800">${item.name}</span>`;
+
+        btn.onclick = () => {
+          if (item.correct) {
+            soundManager.play('correct');
+            btn.classList.add('bg-emerald-200', 'border-emerald-500', 'pointer-events-none');
+            misi1Score++;
+            state.stars += 1;
+            state.coins += 5;
+            updateHUD();
+
+            if (misi1Score === 1) {
+              document.getElementById('plant-visual').innerText = '🌿';
+              document.getElementById('plant-stage-label').innerText = 'Mulai Berdaun Segar!';
+            } else if (misi1Score === 2) {
+              document.getElementById('plant-visual').innerText = '🪴';
+              document.getElementById('plant-stage-label').innerText = 'Tumbuhan Semakin Rindang!';
+            } else if (misi1Score >= 4) {
+              document.getElementById('plant-visual').innerText = '🌸🌳';
+              document.getElementById('plant-stage-label').innerText = 'Tumbuhan Berbunga Lebat!';
+              completeMission(1, "Lencana Sahabat Tumbuhan", 2);
+            }
+            lumiSpeak(`Hebat! ${item.name} sangat dibutuhkan tumbuhan!`);
+          } else {
+            soundManager.play('wrong');
+            lumiSpeak(`Ups, ${item.name} bukan nutrisi untuk tumbuhan.`);
+          }
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    const misi2Data = [
+      { id: 'a1', animal: "🐟 Ikan", habitat: "🌊 Laut / Air" },
+      { id: 'a2', animal: "🐦 Burung", habitat: "🌳 Sarang Pohon" },
+      { id: 'a3', animal: "🐸 Katak", habitat: "🌾 Rawa / Darat-Air" },
+      { id: 'a4', animal: "🐒 Monyet", habitat: "🌴 Hutan Pohon" }
+    ];
+
+    let selectedAnimal = null;
+    let misi2Count = 0;
+
+    function initMission2() {
+      selectedAnimal = null;
+      misi2Count = 0;
+      const animCol = document.getElementById('misi2-animals');
+      const habCol = document.getElementById('misi2-habitats');
+      animCol.innerHTML = '';
+      habCol.innerHTML = '';
+
+      misi2Data.forEach(item => {
+        const aBtn = document.createElement('button');
+        aBtn.className = 'game-btn bg-amber-100 hover:bg-amber-200 border-2 border-amber-400 p-3 rounded-2xl font-black text-amber-950 text-left text-sm flex justify-between items-center';
+        aBtn.innerHTML = `<span>${item.animal}</span> <span>👉</span>`;
+        aBtn.onclick = () => {
+          soundManager.play('button');
+          document.querySelectorAll('#misi2-animals button').forEach(b => b.classList.remove('ring-4', 'ring-amber-500'));
+          aBtn.classList.add('ring-4', 'ring-amber-500');
+          selectedAnimal = item;
+          lumiSpeak(`Pilih tempat tinggal yang cocok untuk ${item.animal}!`);
+        };
+        animCol.appendChild(aBtn);
+
+        const hBtn = document.createElement('button');
+        hBtn.className = 'game-btn bg-emerald-100 hover:bg-emerald-200 border-2 border-emerald-400 p-3 rounded-2xl font-black text-emerald-950 text-left text-sm';
+        hBtn.innerText = item.habitat;
+        hBtn.onclick = () => {
+          if (!selectedAnimal) {
+            lumiSpeak("Pilih hewan di sebelah kiri dulu ya!");
+            return;
+          }
+          if (selectedAnimal.id === item.id) {
+            soundManager.play('correct');
+            aBtn.classList.add('opacity-50', 'pointer-events-none', 'bg-emerald-200');
+            hBtn.classList.add('opacity-50', 'pointer-events-none', 'bg-emerald-200');
+            misi2Count++;
+            state.stars += 2;
+            state.coins += 10;
+            updateHUD();
+            lumiSpeak("Tepat sekali! Kamu menemukan habitatnya!");
+            selectedAnimal = null;
+
+            if (misi2Count >= 4) {
+              completeMission(2, "Lencana Detektif Hewan", 3);
+            }
+          } else {
+            soundManager.play('wrong');
+            lumiSpeak("Tempat ini belum cocok untuk hewan tersebut. Coba lagi!");
+          }
+        };
+        habCol.appendChild(hBtn);
+      });
+    }
+
+    let waterTemp = 0; // 0: Ice, 10-90: Water, 100+: Steam
+
+    function initMission3() {
+      waterTemp = 0;
+      updateWaterVisual();
+    }
+
+    function changeWaterTemp(delta) {
+      soundManager.play('button');
+      waterTemp = Math.max(-20, Math.min(120, waterTemp + delta));
+      updateWaterVisual();
+    }
+
+    function updateWaterVisual() {
+      const vis = document.getElementById('water-visual');
+      const lbl = document.getElementById('water-state-label');
+
+      if (waterTemp <= 0) {
+        vis.innerText = '🧊';
+        lbl.innerText = `Wujud: ES PADAT (${waterTemp}°C) - MEMBEKU`;
+      } else if (waterTemp > 0 && waterTemp < 100) {
+        vis.innerText = '💧';
+        lbl.innerText = `Wujud: AIR CAIR (${waterTemp}°C) - MENCAIR`;
+      } else {
+        vis.innerText = '☁️';
+        lbl.innerText = `Wujud: UAP GAS (${waterTemp}°C) - MENGUAP`;
+        completeMission(3, "Lencana Ahli Perubahan Wujud", 4);
+      }
+    }
+
+    const cityData = [
+      { id: 1, name: "🏠 Rumah", source: "☀️ Panel Surya", icon: "💡" },
+      { id: 2, name: "🏫 Sekolah", source: "💨 Kincir Angin", icon: "💡" },
+      { id: 3, name: "🏥 Rumah Sakit", source: "💧 Turbin Air", icon: "💡" },
+      { id: 4, name: "🚦 Lampu Jalan", source: "🔋 Baterai Listrik", icon: "🚨" }
+    ];
+
+    let cityLit = 0;
+
+    function initMission4() {
+      cityLit = 0;
+      const grid = document.getElementById('city-buildings-grid');
+      grid.innerHTML = '';
+
+      cityData.forEach(b => {
+        const btn = document.createElement('button');
+        btn.className = 'game-btn bg-slate-200 border-3 border-slate-400 rounded-2xl p-4 text-center flex flex-col items-center justify-center';
+        btn.innerHTML = `<span class="text-4xl mb-1">${b.name.split(' ')[0]}</span><span class="font-extrabold text-xs text-slate-700">${b.name}</span><span class="text-[10px] text-amber-700 font-bold mt-1">Gunakan: ${b.source}</span>`;
+        
+        btn.onclick = () => {
+          soundManager.play('correct');
+          btn.className = 'game-btn bg-yellow-200 border-4 border-yellow-500 rounded-2xl p-4 text-center flex flex-col items-center justify-center pointer-events-none shadow-lg';
+          btn.innerHTML = `<span class="text-4xl mb-1">${b.icon}</span><span class="font-black text-xs text-yellow-950">${b.name} NYALA!</span>`;
+          cityLit++;
+          state.stars += 2;
+          state.coins += 10;
+          updateHUD();
+          lumiSpeak(`Listrik menyala menggunakan ${b.source}!`);
+
+          if (cityLit >= 4) {
+            completeMission(4, "Lencana Penjelajah Energi", 5);
+          }
+        };
+        grid.appendChild(btn);
+      });
+    }
+
+    let trashesLeft = 4;
+
+    function initMission5() {
+      trashesLeft = 4;
+      const container = document.getElementById('eco-trash-container');
+      container.innerHTML = '';
+
+      const trashes = [
+        { icon: "🥤", x: "15%", y: "20%" },
+        { icon: "🛍️", x: "70%", y: "30%" },
+        { icon: "🍾", x: "40%", y: "60%" },
+        { icon: "📦", x: "75%", y: "65%" }
+      ];
+
+      trashes.forEach((t, i) => {
+        const el = document.createElement('div');
+        el.className = 'absolute text-4xl cursor-pointer hover:scale-125 transition-transform animate-bounce';
+        el.style.left = t.x;
+        el.style.top = t.y;
+        el.innerText = t.icon;
+
+        el.onclick = () => {
+          soundManager.play('correct');
+          el.innerText = '🌱';
+          el.className = 'absolute text-5xl pointer-events-none transition-all duration-300';
+          trashesLeft--;
+          state.stars += 2;
+          state.coins += 10;
+          updateHUD();
+          lumiSpeak("Sampah dibersihkan & pohon ditanam!");
+
+          if (trashesLeft <= 0) {
+            completeMission(5, "Lencana Pahlawan Bumi", 6);
+          }
+        };
+        container.appendChild(el);
+      });
+    }
+
+    function runLabSim(type) {
+      soundManager.play('button');
+      const display = document.getElementById('sim-display');
+      
+      if (type === 1) {
+        display.innerHTML = `
+          <div class="text-6xl mb-2">☀️ 🧊 ➔ 💧</div>
+          <h4 class="font-black text-amber-400 text-lg">Hasil Simulasi 1:</h4>
+          <p class="text-xs text-slate-200 mt-1 max-w-md">Es di terik matahari menerima energi panas lebih cepat sehingga mencair dalam waktu singkat dibanding es di tempat teduh!</p>
+        `;
+      } else if (type === 2) {
+        display.innerHTML = `
+          <div class="text-6xl mb-2">📦 🥀</div>
+          <h4 class="font-black text-amber-400 text-lg">Hasil Simulasi 2:</h4>
+          <p class="text-xs text-slate-200 mt-1 max-w-md">Tanaman di dalam kotak gelap tidak mendapat cahaya matahari, sehingga tidak bisa melakukan fotosintesis dan akhirnya layu.</p>
+        `;
+      } else if (type === 3) {
+        display.innerHTML = `
+          <div class="text-6xl mb-2">🔦 🥛 ➔ 🌈</div>
+          <h4 class="font-black text-amber-400 text-lg">Hasil Simulasi 3:</h4>
+          <p class="text-xs text-slate-200 mt-1 max-w-md">Cahaya senter yang menembus gelas berisi air dibiaskan menjadi spektrum 7 warna pelangi yang indah!</p>
+        `;
+      }
+      completeMission(6, "Lencana Peneliti Muda", 7);
+    }
+
+    let detectiveFound = 0;
+
+    function initMission7() {
+      detectiveFound = 0;
+      const room = document.getElementById('detective-room');
+      room.innerHTML = '';
+      document.getElementById('cycle-puzzle-box').classList.add('hidden');
+
+      const items = [
+        { icon: "🧊", name: "Es Batu", change: true, x: "20%", y: "20%" },
+        { icon: "☕", name: "Kopi Panas Beruap", change: true, x: "70%", y: "25%" },
+        { icon: "🕯️", name: "Lilin Meleleh", change: true, x: "45%", y: "60%" },
+        { icon: "🪨", name: "Batu Padat", change: false, x: "80%", y: "70%" }
+      ];
+
+      items.forEach(it => {
+        const el = document.createElement('div');
+        el.className = 'absolute text-5xl cursor-pointer hover:scale-125 transition-transform';
+        el.style.left = it.x;
+        el.style.top = it.y;
+        el.innerText = it.icon;
+
+        el.onclick = () => {
+          if (it.change) {
+            soundManager.play('correct');
+            el.innerText = '✨';
+            el.className = 'absolute text-6xl pointer-events-none';
+            detectiveFound++;
+            lumiSpeak(`Kamu menemukan ${it.name} yang bisa berubah wujud!`);
+
+            if (detectiveFound >= 3) {
+              document.getElementById('cycle-puzzle-box').classList.remove('hidden');
+              initCyclePuzzle();
+            }
+          } else {
+            soundManager.play('wrong');
+            lumiSpeak("Batu ini tidak berubah wujud dalam kondisi normal.");
+          }
+        };
+        room.appendChild(el);
+      });
+    }
+
+    function initCyclePuzzle() {
+      const slots = document.getElementById('puzzle-slots');
+      slots.innerHTML = '';
+
+      const cycle = ["🌱 Biji", "🌿 Tunas", "🌳 Pohon"];
+      cycle.forEach((step, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'game-btn bg-pink-200 border-2 border-pink-400 p-2 rounded-xl text-xs font-black text-pink-950';
+        btn.innerText = step;
+        slots.appendChild(btn);
+      });
+
+      completeMission(7, "Master Ilmuwan Cilik", 8);
+    }
+
+    function openMission(id) {
+      soundManager.play('button');
+      if (id > 1 && !state.completedMissions[id - 2]) {
+        lumiSpeak("Selesaikan lokasi sebelumnya terlebih dahulu!");
+        return;
+      }
+
+      if (id === 1) { showView('view-mission-1'); initMission1(); }
+      else if (id === 2) { showView('view-mission-2'); initMission2(); }
+      else if (id === 3) { showView('view-mission-3'); initMission3(); }
+      else if (id === 4) { showView('view-mission-4'); initMission4(); }
+      else if (id === 5) { showView('view-mission-5'); initMission5(); }
+      else if (id === 6) { showView('view-mission-6'); }
+      else if (id === 7) { showView('view-mission-7'); initMission7(); }
+    }
+
+    function completeMission(mIndex, badgeName, itemBagIndex) {
+      if (state.completedMissions[mIndex - 1]) return;
+
+      state.completedMissions[mIndex - 1] = true;
+      state.badges[mIndex - 1].unlocked = true;
+      state.bagItems[itemBagIndex - 1].unlocked = true;
+
+      confettiCelebration();
+      soundManager.play('fanfare');
+
+      if (mIndex === 7) {
+        setTimeout(() => {
+          showView('view-reflection');
+          renderCertificate();
+        }, 1500);
+      } else {
+        setTimeout(() => {
+          lumiSpeak(`Misi ${mIndex} Selesai! Kamu meraih ${badgeName}!`);
+          goMap();
+        }, 1500);
+      }
+    }
+
+    function confettiCelebration() {
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+      }
+    }
+
+    function openBagModal() {
+      soundManager.play('button');
+      const grid = document.getElementById('bag-items-grid');
+      grid.innerHTML = '';
+
+      state.bagItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `p-3 rounded-xl border-2 flex items-center gap-2 ${item.unlocked ? 'bg-emerald-100 border-emerald-400 text-emerald-950' : 'bg-slate-100 border-slate-300 text-slate-400 opacity-60'}`;
+        div.innerHTML = `<span class="text-3xl">${item.icon}</span><div><p class="font-extrabold text-xs">${item.name}</p><p class="text-[10px]">${item.unlocked ? 'Terkumpul ✅' : '🔒 Terkunci'}</p></div>`;
+        grid.appendChild(div);
+      });
+
+      document.getElementById('bag-modal').classList.remove('hidden');
+    }
+
+    function closeBagModal() { document.getElementById('bag-modal').classList.add('hidden'); }
+
+    function openProgressModal() {
+      soundManager.play('button');
+      const completed = state.completedMissions.filter(m => m).length;
+      document.getElementById('modal-mission-count').innerText = `${completed} / 7 Misi`;
+      document.getElementById('modal-progress-bar').style.width = `${(completed / 7) * 100}%`;
+
+      const grid = document.getElementById('modal-badges-grid');
+      grid.innerHTML = '';
+
+      state.badges.forEach(b => {
+        const div = document.createElement('div');
+        div.className = `p-3 rounded-xl border-2 flex items-center gap-2 ${b.unlocked ? 'bg-indigo-100 border-indigo-400 text-indigo-950' : 'bg-slate-100 border-slate-300 text-slate-400 opacity-60'}`;
+        div.innerHTML = `<span class="text-3xl">${b.icon}</span><div><p class="font-extrabold text-xs">${b.name}</p><p class="text-[10px]">${b.unlocked ? 'Diraih ✅' : '🔒 Terkunci'}</p></div>`;
+        grid.appendChild(div);
+      });
+
+      document.getElementById('progress-modal').classList.remove('hidden');
+    }
+
+    function closeProgressModal() { document.getElementById('progress-modal').classList.add('hidden'); }
+
+    function selectReflection(type) {
+      soundManager.play('button');
+      confettiCelebration();
+      lumiSpeak("Terima kasih atas refleksimu! Teruslah berpetualang!");
+    }
+
+    function renderCertificate() {
+      const canvas = document.getElementById('certCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#FEF3C7';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = '#D97706';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+      ctx.fillStyle = '#1E3A8A';
+      ctx.font = 'bold 18px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText("SERTIFIKAT KELULUSAN IPA", canvas.width / 2, 45);
+
+      ctx.fillStyle = '#047857';
+      ctx.font = 'bold 14px Fredoka, sans-serif';
+      ctx.fillText("Diberikan Kepada:", canvas.width / 2, 80);
+
+      ctx.fillStyle = '#B45309';
+      ctx.font = 'bold 20px Fredoka, sans-serif';
+      ctx.fillText("ILMUWAN CILIK HEBAT", canvas.width / 2, 115);
+
+      ctx.fillStyle = '#374151';
+      ctx.font = '11px Fredoka, sans-serif';
+      ctx.fillText("Telah menyelesaikan seluruh Misi Eksperimen IPA", canvas.width / 2, 150);
+
+      ctx.font = '35px serif';
+      ctx.fillText("🔬 🏆 🧪", canvas.width / 2, 200);
+    }
+
+    function downloadCertificate() {
+      soundManager.play('button');
+      const canvas = document.getElementById('certCanvas');
+      const image = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.download = "Sertifikat-Ilmuwan-Cilik.png";
+      link.href = image;
+      link.click();
+    }
+
+    function resetAllProgress() {
+      soundManager.play('button');
+      state.stars = 0;
+      state.coins = 0;
+      state.completedMissions = [false, false, false, false, false, false, false];
+      state.badges.forEach(b => b.unlocked = false);
+      state.bagItems.forEach((b, idx) => b.unlocked = idx === 0);
+      updateHUD();
+      goHome();
+    }
+
+    window.onload = () => {
+      if (window.lucide) lucide.createIcons();
+    };
+  </script>
+</body>
+</html>
